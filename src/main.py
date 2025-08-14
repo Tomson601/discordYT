@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext import commands
 import asyncio
@@ -11,13 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
 
 SONGS_FILE = "songs.json"
 MAX_QUEUE_LENGTH = 10
@@ -26,18 +22,15 @@ song_queue = []
 # Logging
 logging.basicConfig(filename="bot.log", level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
-
 def load_songs():
     if os.path.exists(SONGS_FILE):
         with open(SONGS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
-
 def save_songs(songs):
     with open(SONGS_FILE, "w", encoding="utf-8") as f:
         json.dump(songs, f, ensure_ascii=False, indent=2)
-
 
 def is_youtube_url(url):
     pattern = r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+$"
@@ -69,7 +62,6 @@ async def play(ctx, url: str):
         logging.error(f"Błąd połączenia z kanałem: {e}")
         return
 
-
     # Jeśli coś gra, pobierz piosenkę i dodaj do kolejki
     if vc.is_playing() or vc.is_paused():
         songs = load_songs()
@@ -77,7 +69,7 @@ async def play(ctx, url: str):
         if not (file_path and os.path.exists(file_path)):
             await ctx.send("📥 Pobieram piosenkę do kolejki...")
             try:
-                file_path = download_from_youtube(url)
+                file_path = await asyncio.to_thread(download_from_youtube, url)
                 songs[url] = file_path
                 save_songs(songs)
                 await ctx.send("✅ Piosenka pobrana i dodana do kolejki!")
@@ -91,7 +83,6 @@ async def play(ctx, url: str):
 
     await play_song(ctx, url)
 
-
 async def play_song(ctx, url):
     vc = ctx.voice_client
     songs = load_songs()
@@ -102,7 +93,7 @@ async def play_song(ctx, url):
     else:
         await ctx.send("📥 Pobieram piosenkę...")
         try:
-            file_path = download_from_youtube(url)
+            file_path = await asyncio.to_thread(download_from_youtube, url)
             songs[url] = file_path
             save_songs(songs)
             await ctx.send("▶️ Odtwarzam piosenkę!")
@@ -126,7 +117,6 @@ async def play_song(ctx, url):
         await ctx.send(f"❌ Nie można odtworzyć pliku: {e}")
         logging.error(f"Błąd odtwarzania pliku: {e}")
 
-
 async def play_next(ctx, last_file_path=None):
     # Usuwanie pliku audio po odtworzeniu
     if last_file_path and os.path.exists(last_file_path):
@@ -145,10 +135,8 @@ async def play_next(ctx, last_file_path=None):
         await play_song(ctx, next_url)
     else:
         await ctx.send("Kolejka zakończona.")
-        # Automatyczne opuszczanie kanału jeśli nikt nie słucha
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
-
 
 @bot.command(name="stop")
 async def stop(ctx):
@@ -159,15 +147,13 @@ async def stop(ctx):
     else:
         await ctx.send("Nie jestem połączony.")
 
-
 @bot.command(name="skip")
 async def skip(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
         await ctx.send("⏭️ Pomijam utwór...")
-        ctx.voice_client.stop()  # To wywoła funkcję play_next
+        ctx.voice_client.stop()
     else:
         await ctx.send("Nic nie jest aktualnie odtwarzane.")
-
 
 @bot.command(name="queue")
 async def queue(ctx):
@@ -179,13 +165,11 @@ async def queue(ctx):
             msg += f"{i}. {url}\n"
         await ctx.send(msg)
 
-
 @bot.command(name="clear")
 async def clear(ctx):
     global song_queue
     song_queue.clear()
     await ctx.send("🧹 Kolejka została wyczyszczona.")
-
 
 @bot.command(name="pause")
 async def pause(ctx):
@@ -195,7 +179,6 @@ async def pause(ctx):
     else:
         await ctx.send("Nic nie jest aktualnie odtwarzane.")
 
-
 @bot.command(name="resume")
 async def resume(ctx):
     if ctx.voice_client and ctx.voice_client.is_paused():
@@ -204,8 +187,6 @@ async def resume(ctx):
     else:
         await ctx.send("Nic nie jest wstrzymane.")
 
-
-# Nadpisanie domyślnej komendy pomocy
 from discord.ext.commands import DefaultHelpCommand
 class CustomHelpCommand(DefaultHelpCommand):
     async def send_bot_help(self, mapping):
@@ -225,12 +206,10 @@ class CustomHelpCommand(DefaultHelpCommand):
 
 bot.help_command = CustomHelpCommand()
 
-
 @bot.event
 async def on_ready():
     print(f"✅ Zalogowano jako {bot.user}")
     logging.info(f"Bot zalogowany jako {bot.user}")
-
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -239,7 +218,6 @@ async def on_command_error(ctx, error):
     else:
         await ctx.send(f"❌ Błąd: {error}")
         logging.error(f"Błąd komendy: {error}")
-
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:

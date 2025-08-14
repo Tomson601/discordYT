@@ -13,8 +13,10 @@ def download_from_youtube(link: str) -> str:
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'quiet': False,
+        'quiet': True,
         'noplaylist': True,
+        'socket_timeout': 15,
+        'retries': 3,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
