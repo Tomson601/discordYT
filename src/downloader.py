@@ -4,7 +4,7 @@ import os
 DOWNLOAD_DIR = "piosenki"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-def download_from_youtube(link: str) -> str:
+def download_audio(link: str) -> str:
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),

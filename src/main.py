@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import asyncio
 import os
-from downloader import download_from_youtube
+from downloader import download_audio
 import json
 import re
 import logging
@@ -32,8 +32,13 @@ def save_songs(songs):
     with open(SONGS_FILE, "w", encoding="utf-8") as f:
         json.dump(songs, f, ensure_ascii=False, indent=2)
 
+
 def is_youtube_url(url):
     pattern = r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+$"
+    return re.match(pattern, url)
+
+def is_soundcloud_url(url):
+    pattern = r"^(https?://)?(www\.)?soundcloud\.com/.+"  # prosta walidacja
     return re.match(pattern, url)
 
 @bot.command(name="play")
@@ -42,8 +47,9 @@ async def play(ctx, url: str):
         await ctx.send("Dołącz najpierw do kanału głosowego.")
         return
 
-    if not is_youtube_url(url):
-        await ctx.send("❌ Podaj poprawny link do YouTube.")
+
+    if not (is_youtube_url(url) or is_soundcloud_url(url)):
+        await ctx.send("❌ Podaj poprawny link do YouTube lub SoundCloud.")
         return
 
     if len(song_queue) >= MAX_QUEUE_LENGTH:
@@ -69,7 +75,7 @@ async def play(ctx, url: str):
         if not (file_path and os.path.exists(file_path)):
             await ctx.send("📥 Pobieram piosenkę do kolejki...")
             try:
-                file_path = await asyncio.to_thread(download_from_youtube, url)
+                file_path = await asyncio.to_thread(download_audio, url)
                 songs[url] = file_path
                 save_songs(songs)
                 await ctx.send("✅ Piosenka pobrana i dodana do kolejki!")
@@ -93,7 +99,7 @@ async def play_song(ctx, url):
     else:
         await ctx.send("📥 Pobieram piosenkę...")
         try:
-            file_path = await asyncio.to_thread(download_from_youtube, url)
+            file_path = await asyncio.to_thread(download_audio, url)
             songs[url] = file_path
             save_songs(songs)
             await ctx.send("▶️ Odtwarzam piosenkę!")
